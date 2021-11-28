@@ -29,6 +29,10 @@ async function run(): Promise<void> {
 
         const state = utils.getCacheState();
 
+        const alwaysSave = utils.getInputAsBool(Inputs.AlwaysSave, { required: false });
+        if (typeof alwaysSave === undefined) {
+            core.error('Got invalid value for always-save');
+        }
         // Inputs are re-evaluted before the post action, so we want the original key used for restore
         const primaryKey = core.getState(State.CachePrimaryKey);
         if (!primaryKey) {
@@ -37,10 +41,12 @@ async function run(): Promise<void> {
         }
 
         if (utils.isExactKeyMatch(primaryKey, state)) {
-            core.info(
-                `Cache hit occurred on the primary key ${primaryKey}, not saving cache.`
-            );
-            return;
+            if (!alwaysSave) {
+                core.info(
+                    `Cache hit occurred on the primary key ${primaryKey}, not saving cache.`
+                );
+                return;
+            }
         }
 
         const cachePaths = utils.getInputAsArray(Inputs.Path, {

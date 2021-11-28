@@ -1,7 +1,7 @@
 import * as cache from "@actions/cache";
 import * as core from "@actions/core";
 
-import { Events, Inputs, RefKey } from "../src/constants";
+import { Events, Inputs, RefKey, State } from "../src/constants";
 import run from "../src/save";
 import * as actionUtils from "../src/utils/actionUtils";
 import * as testUtils from "../src/utils/testUtils";
@@ -13,6 +13,9 @@ jest.mock("../src/utils/actionUtils");
 beforeAll(() => {
     jest.spyOn(core, "getInput").mockImplementation((name, options) => {
         return jest.requireActual("@actions/core").getInput(name, options);
+    });
+    jest.spyOn(core, "getBooleanInput").mockImplementation((name, options) => {
+        return jest.requireActual("@actions/core").getBooleanInput(name, options);
     });
 
     jest.spyOn(actionUtils, "getCacheState").mockImplementation(() => {
@@ -115,7 +118,7 @@ test("save on GHES should no-op", async () => {
     );
 });
 
-test("save with exact match returns early", async () => {
+test("save with exact match and no save always returns early", async () => {
     const infoMock = jest.spyOn(core, "info");
     const failedMock = jest.spyOn(core, "setFailed");
 
@@ -132,13 +135,44 @@ test("save with exact match returns early", async () => {
             return primaryKey;
         });
     const saveCacheMock = jest.spyOn(cache, "saveCache");
-
+    testUtils.setInput(Inputs.AlwaysSave, 'false');
     await run();
 
     expect(saveCacheMock).toHaveBeenCalledTimes(0);
     expect(infoMock).toHaveBeenCalledWith(
         `Cache hit occurred on the primary key ${primaryKey}, not saving cache.`
     );
+    expect(failedMock).toHaveBeenCalledTimes(0);
+});
+test("save with exact match and save always saves cache", async () => {
+    const infoMock = jest.spyOn(core, "info");
+    const failedMock = jest.spyOn(core, "setFailed");
+
+    const primaryKey = "Linux-node-bb828da54c148048dd17899ba9fda624811cfb43";
+    const savedCacheKey = primaryKey;
+
+    const getStateMock = jest.spyOn(core, "getState")
+        // Cache Entry State
+        .mockImplementationOnce((arg) => {
+            expect(arg).toBe(State.CacheMatchedKey);
+            return savedCacheKey;
+        })
+        // Cache Key State
+        .mockImplementationOnce((arg) => {
+            expect(arg).toBe(State.CachePrimaryKey);
+            return primaryKey;
+        });
+    // Required to avoid getting errors...
+    const inputPath = "node_modules";
+    testUtils.setInput(Inputs.Path, inputPath);
+
+    testUtils.setInput(Inputs.AlwaysSave, 'true');
+    const logWarning = jest.spyOn(actionUtils, "logWarning");
+    const saveCacheMock = jest.spyOn(cache, "saveCache");
+
+    await run();
+    expect(logWarning).toHaveBeenCalledTimes(0);
+    expect(saveCacheMock).toHaveBeenCalledTimes(1);
     expect(failedMock).toHaveBeenCalledTimes(0);
 });
 

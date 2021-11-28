@@ -8,6 +8,10 @@ inputs:
   key:
     description: 'An explicit key for restoring and saving the cache'
     required: true
+  always-save:
+    description: 'Always save the cache, regardless of success'
+    required: false
+    default: 'false'
   restore-keys:
     description: 'An ordered list of keys to use for restoring the cache if no cache hit occurred for key'
     required: false
@@ -21,7 +25,7 @@ runs:
   using: 'node12'
   main: 'dist/restore/index.js'
   post: 'dist/save/index.js'
-  post-if: 'success()'
+  post-if: 'always()'
 branding:
   icon: 'archive'
   color: 'gray-dark'

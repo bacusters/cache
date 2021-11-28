@@ -232,3 +232,21 @@ test("getInputAsInt throws if required and value missing", () => {
         actionUtils.getInputAsInt("undefined", { required: true })
     ).toThrowError();
 });
+
+test("getInputAsBool returns true for true keyword or 1", () => {
+    expect(actionUtils.boolFromString("true")).toBeTruthy();
+    expect(actionUtils.boolFromString("1")).toBeTruthy();
+    expect(actionUtils.boolFromString("TRUE")).toBeTruthy();
+});
+
+test("getInputAsBool returns false for false keyword or 0", () => {
+    expect(actionUtils.boolFromString("false")).toBeFalsy();
+    expect(actionUtils.boolFromString("0")).toBeFalsy();
+    expect(actionUtils.boolFromString("FaLsE")).toBeFalsy();
+});
+
+test("getInputAsBool returns undefined for invalid input", () => {
+    expect(actionUtils.boolFromString("Test")).toBeUndefined();
+    expect(actionUtils.boolFromString("355")).toBeUndefined();
+    expect(actionUtils.boolFromString("asdjh`21_")).toBeUndefined();
+});
